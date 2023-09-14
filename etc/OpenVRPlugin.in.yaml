@@ -1,0 +1,7 @@
+---
+deviceMap:
+- ["RightFoot","LHR-D756B287"]
+- ["RightArm","LHR-9F12939E"]
+- ["LeftArm","LHR-A108F2F9"]
+
+sleep: 10 #ms
