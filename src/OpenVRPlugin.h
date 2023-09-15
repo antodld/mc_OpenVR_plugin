@@ -8,6 +8,8 @@
 #include <openvr/openvr.h>
 #include <iostream>
 #include <map>
+#include "../include/OpenVRPlugin/OpenVRData.h"
+#include "../include/OpenVRPlugin/OpenVRDataReceiver.h"
 
 namespace mc_plugin
 {
@@ -24,7 +26,21 @@ struct OpenVRPlugin : public mc_control::GlobalPlugin
 
   mc_control::GlobalPlugin::GlobalPluginConfiguration configuration() override;
 
-  vr::TrackedDevicePose_t getDevice(const std::string & name)
+  void updateDeviceGUI(mc_control::MCGlobalController & controller);
+
+  vr::TrackedDevicePose_t getDeviceById(const std::string & id)
+  {
+    std::map<std::string,vr::TrackedDevicePose_t> data = getDevicesData();
+ 
+    if(data.count(id) != 0)
+    {
+      return data[id];
+    }
+    mc_rtc::log::warning("[{}] Device Id {} is not available","OpenVRPlugin",id);   
+    return vr::TrackedDevicePose_t();
+  }
+
+  vr::TrackedDevicePose_t getDeviceByName(const std::string & name)
   {
 
     std::map<std::string,std::string>::iterator it = nameIdMap_.find(name);
@@ -40,25 +56,29 @@ struct OpenVRPlugin : public mc_control::GlobalPlugin
       return vr::TrackedDevicePose_t();
     }
 
-    std::map<std::string,vr::TrackedDevicePose_t> data = getDevicesData();
- 
-    if(data.count(id) != 0)
-    {
-      return data[id];
-    }
-    mc_rtc::log::warning("[{}] Device Id {} is not available","OpenVRPlugin",id);
-    return vr::TrackedDevicePose_t();
+    return getDeviceById(id);
   
   }
 
-  sva::PTransformd getPose(const std::string & name)
+  sva::PTransformd getPoseByName(const std::string & name)
   {
-    return convertTransform(getDevice(name).mDeviceToAbsoluteTracking);
+    return convertTransform(getDeviceByName(name).mDeviceToAbsoluteTracking);
   }
 
-  sva::MotionVecd getVelocity(const std::string & name)
+  sva::PTransformd getPoseByID(const std::string & id)
   {
-    auto device = getDevice(name);
+    return convertTransform(getDeviceById(id).mDeviceToAbsoluteTracking);
+  }
+
+  sva::MotionVecd getVelocityByName(const std::string & name)
+  {
+    auto device = getDeviceByName(name);
+    return convertVelocity(device.vAngularVelocity,device.vVelocity);
+  }
+
+  sva::MotionVecd getVelocityById(const std::string & id)
+  {
+    auto device = getDeviceByName(id);
     return convertVelocity(device.vAngularVelocity,device.vVelocity);
   }
 
@@ -70,6 +90,43 @@ struct OpenVRPlugin : public mc_control::GlobalPlugin
     {
       mc_rtc::log::info("ID : {}",it->first);
     }
+  }
+
+  std::vector<std::string> getDevicesId()
+  {
+    std::vector<std::string> out;
+    std::map<std::string,vr::TrackedDevicePose_t> data = getDevicesData();
+    std::map<std::string,vr::TrackedDevicePose_t>::iterator it;
+    for (it = data.begin(); it != data.end(); it++)
+    {
+      out.push_back(it->first);
+    }  
+    return out;
+  }
+
+  std::string deviceIdByName(const std::string & name)
+  {
+    if(nameIdMap_.count(name) != 0)
+    {
+      return nameIdMap_[name];
+    }
+    else
+    {
+      mc_rtc::log::error("[{}] device name {} does not exist","OpenVRPlugin",name);
+    }
+    return "";
+  }
+  std::string deviceNameById(const std::string & id)
+  {
+    if(idNameMap_.count(id) != 0)
+    {
+      return idNameMap_[id];
+    }
+    else
+    {
+      mc_rtc::log::error("[{}] device ID {} does not exist","OpenVRPlugin",id);
+    }
+    return "";
   }
 
   ~OpenVRPlugin() override;
@@ -96,11 +153,16 @@ private:
     return devicesData_;
   }
 
+  OpenVRDataReceiver<std::map<std::string,vr::TrackedDevicePose_t>> receiver_;
+
+  OpenVRData data_;
   std::mutex mutex_;
   std::map<std::string,vr::TrackedDevicePose_t> devicesData_; //Map device state to its ID
   std::map<std::string,std::string> nameIdMap_; //Map device Id to a name
-  vr::IVRSystem* vr_pointer {NULL};
+  std::map<std::string,std::string> idNameMap_; //Map device name to a Id
 
+
+  bool localData_ = true; //Wether on not steamVR is on the machine running the plugin
   bool threadOn_ = false;
   std::thread th_;
   int sleepTime_ = 30;
@@ -109,14 +171,3 @@ private:
 };
 
 } // namespace mc_plugin
-
-
-struct DeviceData
-{
-    sva::PTransformd X_0_device_;
-    sva::MotionVecd V_device_ = sva::MotionVecd::Zero();
-    sva::MotionVecd A_device_ = sva::MotionVecd::Zero();
-    vr::TrackedDeviceIndex_t device_indx_ = 0;
-    vr::ETrackedDeviceClass device_class_ = vr::ETrackedDeviceClass::TrackedDeviceClass_Invalid;
-    
-};

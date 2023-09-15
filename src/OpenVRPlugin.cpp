@@ -1,6 +1,8 @@
 #include "OpenVRPlugin.h"
 
 #include <mc_control/GlobalPluginMacros.h>
+#include<mc_rtc/gui/Transform.h>
+#include<mc_rtc/gui/Label.h>
 
 namespace mc_plugin
 {
@@ -14,21 +16,13 @@ OpenVRPlugin::~OpenVRPlugin()
 void OpenVRPlugin::init(mc_control::MCGlobalController & controller, const mc_rtc::Configuration & config)
 {
 
-  vr::EVRInitError eError {vr::VRInitError_None};
-  vr_pointer = VR_Init(&eError, vr::VRApplication_Background);
-  if (eError != vr::VRInitError_None) {
-      vr_pointer = NULL;
-      std::cout << "Unable to init VR runtime: " << VR_GetVRInitErrorAsEnglishDescription(eError) << "\n";
-      exit(EXIT_FAILURE);
-  }
-
-
   if(config.has("deviceMap"))
   {
-    std::vector<std::vector<std::string>> map = config("deviceMap");
+    std::vector<std::vector<std::string>> map = config("deviceMap"); //[name ; ID]
     for (auto & device:map )
     {
       nameIdMap_[device[0]] = device[1];
+      idNameMap_[device[1]] = device[0];
     }
   }
   else
@@ -39,29 +33,42 @@ void OpenVRPlugin::init(mc_control::MCGlobalController & controller, const mc_rt
   {
     config("sleep",sleepTime_);
   }
-
+  config("localData",localData_);
+  if(!localData_)
+  {
+    const int n_port = config("distantData")("port");
+    mc_rtc::log::info("create UDP receiver on port {}",n_port);
+    receiver_.create(n_port);
+  }
+  else
+  {
+    data_.init();
+  }
   threadOn_ = true;
   th_ = std::thread(&OpenVRPlugin::threadLoop, this);
+
 
   mc_rtc::log::info("OpenVRPlugin::init called with configuration:\n{}", config.dump(true, true));
 }
 
 void OpenVRPlugin::reset(mc_control::MCGlobalController & controller)
 {
+
+  controller.controller().gui()->removeCategory({"OpenVRPlugin"});
+
   threadOn_ = false;
   th_.join();
   threadOn_ = true;
   th_ = std::thread(&OpenVRPlugin::threadLoop, this);
+  
   mc_rtc::log::info("OpenVRPlugin::reset called");
 }
 
-void OpenVRPlugin::before(mc_control::MCGlobalController &)
+void OpenVRPlugin::before(mc_control::MCGlobalController & ctl)
 {
-  mc_rtc::log::info("Tracker test\n{}",getPose("RightArm").translation());
-
-  mc_rtc::log::info("Tracker speed test\n{}",getVelocity("RightArm").angular());
-
-
+  updateDeviceGUI(ctl);
+  // mc_rtc::log::info("Tracker test\n{}",getPoseByName("RightArm").translation());
+  
 }
 
 void OpenVRPlugin::after(mc_control::MCGlobalController & controller)
@@ -71,41 +78,64 @@ void OpenVRPlugin::after(mc_control::MCGlobalController & controller)
 
 void OpenVRPlugin::update()
 {
-  std::map<std::string,vr::TrackedDevicePose_t> devicesData = getDevicesData(); //Map device state to its ID
-
-  for (vr::TrackedDeviceIndex_t unDevice = 0; unDevice < vr::k_unMaxTrackedDeviceCount; unDevice++)
+  if(localData_)
   {
-
-    vr::VRControllerState_t state;
-    if (vr_pointer->GetControllerState(unDevice, &state, sizeof(state)))
+    std::map<std::string,vr::TrackedDevicePose_t> devicesData = getDevicesData(); //Map device state to its ID
+    data_.update(devicesData);
     {
+      std::lock_guard<std::mutex> lk_copy_state(mutex_);
+      devicesData_ = devicesData;
       
-      DeviceData device;
-      device.device_indx_ = unDevice;
-      device.device_class_ = vr_pointer->GetTrackedDeviceClass(unDevice);
-
-      char serialNumber[13];
-      vr::VRSystem()->GetStringTrackedDeviceProperty(unDevice, vr::Prop_SerialNumber_String, serialNumber, sizeof(serialNumber));
-
-      vr::VRControllerState_t controllerState;
-      vr::TrackedDevicePose_t trackedControllerPose;
-
-      vr_pointer->GetControllerStateWithPose(vr::TrackingUniverseStanding, unDevice,
-                                            &controllerState, sizeof(controllerState),
-                                            &trackedControllerPose);
-
-      auto matrix = trackedControllerPose.mDeviceToAbsoluteTracking;
-      Eigen::Vector3d t_0;
-      t_0 << matrix.m[0][3],matrix.m[1][3],matrix.m[2][3];
-      devicesData[serialNumber] = trackedControllerPose;
-
+    }
+  }
+  else
+  {
+    if(receiver_.connected())
+    {
+      std::map<std::string,vr::TrackedDevicePose_t> data;
+      int data_available = 0;
+      size_t count = 0;
+      while(data_available == 0)
+      {
+        data_available = receiver_.receive();
+        if(data_available != 0)
+        {
+          break;
+        }
+        count +=1;
+      }
+      receiver_.get(data);
+      std::lock_guard<std::mutex> lk_copy_state(mutex_);
+            
+      std::map<std::string,vr::TrackedDevicePose_t>::iterator it;
+      for (it = data.begin(); it != data.end(); it++)
+      {
+        devicesData_[it->first] = it->second;
+      } 
+    
+    }
+    else
+    {
+      mc_rtc::log::warning("[OpenVRPlugin] Data sender is offline");
     }
   }
 
+}
+
+void OpenVRPlugin::updateDeviceGUI(mc_control::MCGlobalController & controller)
+{
+  auto gui = controller.controller().gui();
+
+  auto devicesId = getDevicesId();
+
+  for(auto & id: devicesId)
   {
-    std::lock_guard<std::mutex> lk_copy_state(mutex_);
-    devicesData_ = devicesData;
-    
+    if(!gui->hasElement({"OpenVRPlugin","Devices"},"ID :" + id))
+    {
+      std::string name = deviceNameById(id);
+      gui->addElement({"OpenVRPlugin","Devices"}, mc_rtc::gui::Transform("ID :" + id,[this,id]() -> sva::PTransformd {return getPoseByID(id);}));
+      gui->addElement({"OpenVRPlugin","Devices"}, mc_rtc::gui::Label("Associated Name : " + name,[this]() -> std::string {return "";}));
+    }
   }
 
 }

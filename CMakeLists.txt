@@ -7,6 +7,9 @@ set(PROJECT_VERSION 0.0.1)
 set(PROJECT_USE_CMAKE_EXPORT TRUE)
 set(CMAKE_CXX_STANDARD 11)
 
+option(BUILD_MC_RTC_PLUGIN "Build the mc_rtc plugin" ON)
+option(BUILD_DATA_PUBLISHER "Build the data sender executable" ON)
+
 # include(cmake/base.cmake)
 include(FindPkgConfig)
 
@@ -16,29 +19,83 @@ project(${PROJECT_NAME} LANGUAGES CXX VERSION ${PROJECT_VERSION})
 
 # Find mc_rtc if we are not building inside mc_rtc itself
 if(NOT TARGET mc_rtc::mc_control)
-  find_package(mc_rtc REQUIRED)
+  find_package(mc_rtc)
+  if(NOT mc_rtc_FOUND)
+    set(BUILD_MC_RTC_PLUGIN OFF)
+    message("NOT FOUND mc_rtc")
+  endif()
+endif()
+
+
+find_package(yaml-cpp)
+if(NOT yaml-cpp_FOUND)
+  set(BUILD_DATA_PUBLISHER OFF)
+  message("NOT FOUND yaml-cpp")
 endif()
 
 # This creates a target PkgConfig::openvr if openvr is found
 pkg_check_modules(openvr REQUIRED IMPORTED_TARGET openvr)
 
-# Configure and install the plugin configuration
+find_package(Boost REQUIRED COMPONENTS serialization)
+
+# Configure the plugin configuration
 configure_file(etc/${PROJECT_NAME}.in.yaml "${CMAKE_CURRENT_BINARY_DIR}/etc/${PROJECT_NAME}.yaml")
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/etc/${PROJECT_NAME}.yaml" DESTINATION "${MC_PLUGINS_RUNTIME_INSTALL_PREFIX}/etc")
 
+# Create a library to export plugin data
+# This is intended so that other projects can link with OpenVRData
 
-set(plugin_SRC
-  src/OpenVRPlugin.cpp
+set(OpenVRData_SRC
+  src/OpenVRData.cpp
   )
 
-set(plugin_HDR
-  src/OpenVRPlugin.h
+set(OpenVRData_HDR
+  include/OpenVRPlugin/OpenVRData.h
+  include/OpenVRPlugin/OpenVRDataPublisher.h
+  include/OpenVRPlugin/OpenVRDataReceiver.h
+  include/OpenVRPlugin/boost_serialization.h
+  include/OpenVRPlugin/serialize.h
 )
 
-# The add_plugin macro is provided by mc_rtc
-add_plugin(${PROJECT_NAME} "${plugin_SRC}" "${plugin_HDR}")
-target_link_libraries(${PROJECT_NAME} PUBLIC PkgConfig::openvr)
+add_library(OpenVRData SHARED ${OpenVRData_SRC} ${OpenVRData_HDR})
 
-if(BUILD_TESTING)
-  add_subdirectory(tests)
+target_link_libraries(OpenVRData PUBLIC ${Boost_LIBRARIES})
+target_link_libraries(OpenVRData PUBLIC PkgConfig::openvr)
+
+install(TARGETS OpenVRData
+  EXPORT OpenVRData
+  RUNTIME DESTINATION bin
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib)
+
+install(
+DIRECTORY ${CMAKE_SOURCE_DIR}/include/ DESTINATION include)
+
+if(BUILD_DATA_PUBLISHER)
+  add_executable(PluginLink src/PluginLink.cpp)
+  target_link_libraries(PluginLink OpenVRData)
+  target_link_libraries(PluginLink yaml-cpp)
+endif()
+
+if(BUILD_MC_RTC_PLUGIN)
+
+  #install the plugin configuration
+  install(FILES "${CMAKE_CURRENT_BINARY_DIR}/etc/${PROJECT_NAME}.yaml" DESTINATION "${MC_PLUGINS_RUNTIME_INSTALL_PREFIX}/etc")
+
+  set(plugin_SRC
+    src/OpenVRPlugin.cpp
+    )
+
+  set(plugin_HDR
+    src/OpenVRPlugin.h
+  )
+
+  # The add_plugin macro is provided by mc_rtc
+  add_plugin(${PROJECT_NAME} "${plugin_SRC}" "${plugin_HDR}")
+  target_link_libraries(${PROJECT_NAME} PUBLIC PkgConfig::openvr)
+  target_link_libraries(${PROJECT_NAME} PUBLIC OpenVRData)
+
+  if(BUILD_TESTING)
+    add_subdirectory(tests)
+  endif()
+
 endif()
