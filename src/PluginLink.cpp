@@ -1,13 +1,15 @@
-#include "../include/OpenVRPlugin/OpenVRDataPublisher.h"
+// #include "../include/OpenVRPlugin/OpenVRDataPublisher.h"
 #include "../include/OpenVRPlugin/OpenVRData.h"
+#include "../include/OpenVRPlugin/boost_serialization.h"
 #include <thread>
 #include <yaml-cpp/yaml.h>
+#include <UDPDataLink/Publisher.h>
 
 int main()
 {
 
     OpenVRData openVRData;
-    OpenVRDataPublisher<std::map<std::string,vr::TrackedDevicePose_t>> sender;
+    UDPDataLink::Publisher<std::map<std::string,vr::TrackedDevicePose_t>> sender;
 
     YAML::Node config = YAML::LoadFile("etc/OpenVRPlugin.yaml");
 

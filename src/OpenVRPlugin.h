@@ -9,7 +9,9 @@
 #include <iostream>
 #include <map>
 #include "../include/OpenVRPlugin/OpenVRData.h"
-#include "../include/OpenVRPlugin/OpenVRDataReceiver.h"
+#include "../include/OpenVRPlugin/boost_serialization.h"
+#include <UDPDataLink/Publisher.h>
+#include <UDPDataLink/Receiver.h>
 
 namespace mc_plugin
 {
@@ -153,7 +155,7 @@ private:
     return devicesData_;
   }
 
-  OpenVRDataReceiver<std::map<std::string,vr::TrackedDevicePose_t>> receiver_;
+  UDPDataLink::Receiver<std::map<std::string,vr::TrackedDevicePose_t>> receiver_;
 
   OpenVRData data_;
   std::mutex mutex_;

@@ -37,6 +37,7 @@ endif()
 pkg_check_modules(openvr REQUIRED IMPORTED_TARGET openvr)
 
 find_package(Boost REQUIRED COMPONENTS serialization)
+find_package(UDPDataLink REQUIRED)
 
 # Configure the plugin configuration
 configure_file(etc/${PROJECT_NAME}.in.yaml "${CMAKE_CURRENT_BINARY_DIR}/etc/${PROJECT_NAME}.yaml")
@@ -50,16 +51,14 @@ set(OpenVRData_SRC
 
 set(OpenVRData_HDR
   include/OpenVRPlugin/OpenVRData.h
-  include/OpenVRPlugin/OpenVRDataPublisher.h
-  include/OpenVRPlugin/OpenVRDataReceiver.h
   include/OpenVRPlugin/boost_serialization.h
-  include/OpenVRPlugin/serialize.h
 )
 
 add_library(OpenVRData SHARED ${OpenVRData_SRC} ${OpenVRData_HDR})
 
-target_link_libraries(OpenVRData PUBLIC ${Boost_LIBRARIES})
+# target_link_libraries(OpenVRData PUBLIC ${Boost_LIBRARIES})
 target_link_libraries(OpenVRData PUBLIC PkgConfig::openvr)
+
 
 install(TARGETS OpenVRData
   EXPORT OpenVRData
@@ -74,6 +73,7 @@ if(BUILD_DATA_PUBLISHER)
   add_executable(PluginLink src/PluginLink.cpp)
   target_link_libraries(PluginLink OpenVRData)
   target_link_libraries(PluginLink yaml-cpp)
+  target_link_libraries(OpenVRData PUBLIC UDPDataLink)
 endif()
 
 if(BUILD_MC_RTC_PLUGIN)
@@ -93,6 +93,7 @@ if(BUILD_MC_RTC_PLUGIN)
   add_plugin(${PROJECT_NAME} "${plugin_SRC}" "${plugin_HDR}")
   target_link_libraries(${PROJECT_NAME} PUBLIC PkgConfig::openvr)
   target_link_libraries(${PROJECT_NAME} PUBLIC OpenVRData)
+  target_link_libraries(OpenVRData PUBLIC UDPDataLink)
 
   if(BUILD_TESTING)
     add_subdirectory(tests)
