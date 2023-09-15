@@ -1,29 +1,47 @@
-mc_rtc new plugin template
+mc_OpenVR_plugin
 ==
+This plugins provide an access to the OpenVR devices for [mc_rtc]  
 
-This project is a template for a new plugin wihtin [mc_rtc]
+## Dependencies 
 
-It comes with:
-- a CMake project that can build a plugin for [mc_rtc], the project can be put within [mc_rtc] source-tree for easier updates
-- clang-format files
-- automated GitHub Actions builds on three major platforms
+[mc_rtc] 
 
-Quick start
---
+[OpenVR] 
 
-1. Renaming the controller from `NewPlugin` to `MyPlugin`. In a shell (Git Bash on Windows, replace sed with gsed on macOS):
+[UDPDataLink] (for remote devices access) 
 
-```bash
-sed -i -e's/NewPlugin/MyPlugin/g' `find . -type f`
-git mv src/NewPlugin.cpp src/MyPlugin.cpp
-git mv src/NewPlugin.h src/MyPlugin.h
-git mv etc/NewPlugin.in.yaml etc/MyPlugin.in.yaml
+## Installation 
+
+In repo directory :
+```shell
+mkdir build && cd build
+cmake ..
+make
+sudo make install
+```
+## Use
+To enable the plugin add to your [mc_rtc] configuration file :
+```
+Plugins: [OpenVRPlugin]
 ```
 
-2. You can customize the project name in vcpkg.json as well, note that this must follow [vcpkg manifest rules](https://github.com/microsoft/vcpkg/blob/master/docs/users/manifests.md)
+Each devices are identified with their ID, they can be labeled with a name :
+```shell
+deviceMap: #[name ; ID]
+- ["RightFoot","LHR-D756B287"]
+```
 
-3. Build and install the project
+By default, it is assumed SteamVR is running on the same computer as the one running the controller. 
 
-4. Run using your [mc_rtc] interface of choice, add `MyPlugin` to the `Plugins` configuration entry or enable the autoload option
-
-[mc_rtc]: https://jrl-umi3218.github.io/mc_rtc/
+# Distant device connection
+If the devices are connected to another computer the data will be streamed using UDP. Using the following exécutable :
+```shell
+cd build
+./PluginLink
+```
+On the control computer, change the configuration file
+```shell
+localData: false
+distantData:
+  port: 12338
+  ip: 127.0.0.1
