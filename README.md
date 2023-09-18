@@ -4,11 +4,11 @@ This plugins provide an access to the OpenVR devices for [mc_rtc]
 
 ## Dependencies 
 
-[mc_rtc] 
+[mc_rtc](https://github.com/jrl-umi3218/mc_rtc)
 
-[OpenVR] 
+[OpenVR](https://github.com/ValveSoftware/openvr)
 
-[UDPDataLink] (for remote devices access) 
+[UDPDataLink](https://github.com/antodld/UDPDataLink) (for remote devices access) 
 
 ## Installation 
 
@@ -21,7 +21,7 @@ sudo make install
 ```
 ## Use
 To enable the plugin add to your [mc_rtc] configuration file :
-```
+```shell
 Plugins: [OpenVRPlugin]
 ```
 
@@ -34,7 +34,7 @@ deviceMap: #[name ; ID]
 By default, it is assumed SteamVR is running on the same computer as the one running the controller. 
 
 # Distant device connection
-If the devices are connected to another computer the data will be streamed using UDP. Using the following exécutable :
+If the devices are connected to another computer the data will be streamed using UDP. Using the following executable :
 ```shell
 cd build
 ./PluginLink
@@ -45,3 +45,4 @@ localData: false
 distantData:
   port: 12338
   ip: 127.0.0.1
+```
