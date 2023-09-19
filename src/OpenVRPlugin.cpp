@@ -47,6 +47,19 @@ void OpenVRPlugin::init(mc_control::MCGlobalController & controller, const mc_rt
   threadOn_ = true;
   th_ = std::thread(&OpenVRPlugin::threadLoop, this);
 
+  controller.controller().datastore().make_call(
+    "OpenVRPlugin::getPoseByName", [this](std::string name) -> sva::PTransformd { return getPoseByName(name); });
+  controller.controller().datastore().make_call(
+    "OpenVRPlugin::getPoseById", [this](std::string id) -> sva::PTransformd { return getPoseByID(id); });
+  
+  controller.controller().datastore().make_call(
+    "OpenVRPlugin::getVelocityByName", [this](std::string name) -> sva::MotionVecd { return getVelocityByName(name); });
+  controller.controller().datastore().make_call(
+    "OpenVRPlugin::getVelocityById", [this](std::string id) -> sva::MotionVecd { return getVelocityById(id); });
+  
+  controller.controller().datastore().make_call(
+    "OpenVRPlugin::getDevicesId", [this]() -> std::vector<std::string> { return getDevicesId(); });
+
 
   mc_rtc::log::info("OpenVRPlugin::init called with configuration:\n{}", config.dump(true, true));
 }

@@ -9,6 +9,7 @@ set(CMAKE_CXX_STANDARD 11)
 
 option(BUILD_MC_RTC_PLUGIN "Build the mc_rtc plugin" ON)
 option(BUILD_DATA_PUBLISHER "Build the data sender executable" ON)
+option(BUILD_TESTING "build the mc_rtc test controller" OFF)
 
 # include(cmake/base.cmake)
 include(FindPkgConfig)
@@ -28,6 +29,8 @@ endif()
 
 
 find_package(yaml-cpp)
+find_package(UDPDataLink REQUIRED)
+
 if(NOT yaml-cpp_FOUND)
   set(BUILD_DATA_PUBLISHER OFF)
   message("NOT FOUND yaml-cpp")
@@ -37,7 +40,6 @@ endif()
 pkg_check_modules(openvr REQUIRED IMPORTED_TARGET openvr)
 
 find_package(Boost REQUIRED COMPONENTS serialization)
-find_package(UDPDataLink REQUIRED)
 
 # Configure the plugin configuration
 configure_file(etc/${PROJECT_NAME}.in.yaml "${CMAKE_CURRENT_BINARY_DIR}/etc/${PROJECT_NAME}.yaml")
@@ -59,12 +61,17 @@ add_library(OpenVRData SHARED ${OpenVRData_SRC} ${OpenVRData_HDR})
 # target_link_libraries(OpenVRData PUBLIC ${Boost_LIBRARIES})
 target_link_libraries(OpenVRData PUBLIC PkgConfig::openvr)
 
+export(TARGETS OpenVRData FILE "OpenVRDataConfig.cmake")
 
 install(TARGETS OpenVRData
   EXPORT OpenVRData
   RUNTIME DESTINATION bin
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib)
+
+install(EXPORT OpenVRData
+  FILE "OpenVRDataConfig.cmake"
+  DESTINATION lib/cmake/OpenVRData)
 
 install(
 DIRECTORY ${CMAKE_SOURCE_DIR}/include/ DESTINATION include)
@@ -94,6 +101,12 @@ if(BUILD_MC_RTC_PLUGIN)
   target_link_libraries(${PROJECT_NAME} PUBLIC PkgConfig::openvr)
   target_link_libraries(${PROJECT_NAME} PUBLIC OpenVRData)
   target_link_libraries(OpenVRData PUBLIC UDPDataLink)
+
+  # export(TARGETS ${PROJECT_NAME} FILE "${PROJECT_NAME}Config.cmake")
+  # install(EXPORT ${PROJECT_NAME}
+  #   FILE "${PROJECT_NAME}Config.cmake"
+  #   DESTINATION lib/cmake/${PROJECT_NAME})
+
 
   if(BUILD_TESTING)
     add_subdirectory(tests)

@@ -6,7 +6,7 @@ deviceMap: #[name ; ID]
 
 sleep: 10 #ms
 
-localData: false
+localData: true
 distantData:
   port: 12338
   ip: 127.0.0.1
