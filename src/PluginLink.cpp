@@ -13,24 +13,24 @@ int main()
 
     YAML::Node config = YAML::LoadFile("etc/OpenVRPlugin.yaml");
 
-    if (!config["distantData"]) 
+    if (!config["OpenVRPlugin"]["distantData"]) 
     {
         std::cout << "ERROR : No server parameters provided in the configuration file " << std::endl;
         return 1;
     }
-    if(!config["distantData"]["ip"])
+    if(!config["OpenVRPlugin"]["distantData"]["ip"])
     {
         std::cout << "ERROR : no IP provided" <<std::endl;
         return 2;
     }
-    if(!config["distantData"]["port"])
+    if(!config["OpenVRPlugin"]["distantData"]["port"])
     {
         std::cout << "ERROR : no port number provided" <<std::endl;
         return 3;
     }
 
-    const std::string ip = config["distantData"]["ip"].as<std::string>();
-    const int port = config["distantData"]["port"].as<int>();
+    const std::string ip = config["OpenVRPlugin"]["distantData"]["ip"].as<std::string>();
+    const int port = config["OpenVRPlugin"]["distantData"]["port"].as<int>();
     sender.create(&ip[0],port);
     openVRData.init();
     

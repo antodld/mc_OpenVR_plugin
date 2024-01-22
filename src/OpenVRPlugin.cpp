@@ -15,10 +15,12 @@ OpenVRPlugin::~OpenVRPlugin()
 
 void OpenVRPlugin::init(mc_control::MCGlobalController & controller, const mc_rtc::Configuration & config)
 {
-
-  if(config.has("deviceMap"))
+  config_.load(config);
+  config_.load(controller.controller().config());
+  const auto & plugin_config = config_("OpenVRPlugin");
+  if(plugin_config.has("deviceMap"))
   {
-    std::vector<std::vector<std::string>> map = config("deviceMap"); //[name ; ID]
+    std::vector<std::vector<std::string>> map = plugin_config("deviceMap"); //[name ; ID]
     for (auto & device:map )
     {
       nameIdMap_[device[0]] = device[1];
@@ -29,14 +31,14 @@ void OpenVRPlugin::init(mc_control::MCGlobalController & controller, const mc_rt
   {
     mc_rtc::log::warning("[{}] No Devices name listed in configuration file, device would not be accessible by name","OpenVRPlugin");
   }
-  if(config.has("sleep"))
+  if(plugin_config.has("sleep"))
   {
-    config("sleep",sleepTime_);
+    plugin_config("sleep",sleepTime_);
   }
-  config("localData",localData_);
+  plugin_config("localData",localData_);
   if(!localData_)
   {
-    const int n_port = config("distantData")("port");
+    const int n_port = plugin_config("distantData")("port");
     mc_rtc::log::info("create UDP receiver on port {}",n_port);
     receiver_.create(n_port);
   }
@@ -61,7 +63,7 @@ void OpenVRPlugin::init(mc_control::MCGlobalController & controller, const mc_rt
     "OpenVRPlugin::getDevicesId", [this]() -> std::vector<std::string> { return getDevicesId(); });
 
 
-  mc_rtc::log::info("OpenVRPlugin::init called with configuration:\n{}", config.dump(true, true));
+  mc_rtc::log::info("OpenVRPlugin::init called with configuration:\n{}", plugin_config.dump(true, true));
 }
 
 void OpenVRPlugin::reset(mc_control::MCGlobalController & controller)

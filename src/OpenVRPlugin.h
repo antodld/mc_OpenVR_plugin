@@ -169,6 +169,8 @@ private:
   std::thread th_;
   int sleepTime_ = 30;
 
+  mc_rtc::Configuration config_;
+
 
 };
 

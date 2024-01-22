@@ -66,3 +66,12 @@ distantData:
   ip: 127.0.0.1
 ```
 If the config file is modified, the project must be built again
+
+# SteamVR running on Ubuntu
+This was tested on Ubuntu 20.04 with steamVR 2.2.3
+Make sure the vive tracker dongle are connected before.
+Run the following script :
+```shell
+~/.steam/debian-installation/steamapps/common/SteamVR/bin/vrmonitor.sh
+```
+If your steamVR is installed somewhere else, you can locate it using the game properties on steam directly

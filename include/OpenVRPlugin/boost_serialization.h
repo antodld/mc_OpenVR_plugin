@@ -20,6 +20,5 @@ void serialize(Archive & ar, vr::TrackedDevicePose_t & p, const unsigned int ver
     ar & p.vVelocity.v;
 }
 
-
 };
 };
