@@ -30,32 +30,31 @@ struct OpenVRPlugin : public mc_control::GlobalPlugin
 
   void updateDeviceGUI(mc_control::MCGlobalController & controller);
 
-  vr::TrackedDevicePose_t getDeviceById(const std::string & id)
+  const vr::TrackedDevicePose_t & getDeviceById(const std::string & id) const
   {
-    std::map<std::string,vr::TrackedDevicePose_t> data = getDevicesData();
+    const std::map<std::string,vr::TrackedDevicePose_t> data = getDevicesData();
  
     if(data.count(id) != 0)
     {
-      return data[id];
+      return data.at(id);
     }
     mc_rtc::log::warning("[{}] Device Id {} is not available","OpenVRPlugin",id);   
-    return vr::TrackedDevicePose_t();
+    return empty_device_;
   }
 
-  vr::TrackedDevicePose_t getDeviceByName(const std::string & name)
+  const vr::TrackedDevicePose_t getDeviceByName(const std::string & name) const
   {
 
-    std::map<std::string,std::string>::iterator it = nameIdMap_.find(name);
     std::string id = "";
 
     if(nameIdMap_.count(name) != 0)
     {
-      id = nameIdMap_[name];
+      id = nameIdMap_.at(name);
     }
     else
     {
       mc_rtc::log::warning("[{}] Device name {} is not available in configuration","OpenVRPlugin",name);
-      return vr::TrackedDevicePose_t();
+      return empty_device_;
     }
 
     return getDeviceById(id);
@@ -80,37 +79,36 @@ struct OpenVRPlugin : public mc_control::GlobalPlugin
 
   sva::MotionVecd getVelocityById(const std::string & id)
   {
-    auto device = getDeviceByName(id);
+    const auto device = getDeviceByName(id);
     return convertVelocity(device.vAngularVelocity,device.vVelocity);
   }
 
-  void listDevicesId()
+  void listDevicesId() const
   {
-    std::map<std::string,vr::TrackedDevicePose_t> data = getDevicesData();
-    std::map<std::string,vr::TrackedDevicePose_t>::iterator it;
-    for (it = data.begin(); it != data.end(); it++)
+    const std::map<std::string,vr::TrackedDevicePose_t> & data = getDevicesData();
+
+    for (auto & device : data)
     {
-      mc_rtc::log::info("ID : {}",it->first);
+      mc_rtc::log::info("ID : {}",device.first);
     }
   }
 
-  std::vector<std::string> getDevicesId()
+  std::vector<std::string> getDevicesId() const
   {
     std::vector<std::string> out;
-    std::map<std::string,vr::TrackedDevicePose_t> data = getDevicesData();
-    std::map<std::string,vr::TrackedDevicePose_t>::iterator it;
-    for (it = data.begin(); it != data.end(); it++)
+    const std::map<std::string,vr::TrackedDevicePose_t> & data = getDevicesData();
+    for (auto & device : data)
     {
-      out.push_back(it->first);
+      out.push_back(device.first);
     }  
     return out;
   }
 
-  std::string deviceIdByName(const std::string & name)
+  std::string deviceIdByName(const std::string & name) const
   {
     if(nameIdMap_.count(name) != 0)
     {
-      return nameIdMap_[name];
+      return nameIdMap_.at(name);
     }
     else
     {
@@ -118,17 +116,42 @@ struct OpenVRPlugin : public mc_control::GlobalPlugin
     }
     return "";
   }
-  std::string deviceNameById(const std::string & id)
+  std::string deviceNameById(const std::string & id) const
   {
     if(idNameMap_.count(id) != 0)
     {
-      return idNameMap_[id];
+      return idNameMap_.at(id);
     }
     else
     {
       mc_rtc::log::error("[{}] device ID {} does not exist","OpenVRPlugin",id);
     }
     return "";
+  }
+
+  bool deviceHasName(const std::string & name) const
+  {
+    return nameIdMap_.count(name) != 0;
+  }
+
+  bool deviceOnline(const std::string & name) const
+  {
+    if(!deviceHasName(name))
+    {
+      mc_rtc::log::error("[{}] device name {} does not exist","OpenVRPlugin",name);
+      return false;
+    }
+    const auto id = deviceIdByName(name);
+
+    const std::map<std::string,vr::TrackedDevicePose_t> & data = getDevicesData();
+ 
+    return data.count(id) != 0;
+
+  }
+
+  bool deviceIdHasName(const std::string & id) const
+  {
+    return idNameMap_.count(id) != 0;
   }
 
   ~OpenVRPlugin() override;
@@ -149,9 +172,8 @@ private:
   sva::PTransformd convertTransform(const vr::HmdMatrix34_t & matrix);
   sva::MotionVecd convertVelocity(const vr::HmdVector3_t & angular, const vr::HmdVector3_t & linear);
 
-  std::map<std::string,vr::TrackedDevicePose_t> getDevicesData()
+  const std::map<std::string,vr::TrackedDevicePose_t> & getDevicesData() const
   {
-    std::lock_guard<std::mutex> lk_copy_state(mutex_);
     return devicesData_;
   }
 
@@ -160,6 +182,11 @@ private:
   OpenVRData data_;
   std::mutex mutex_;
   std::map<std::string,vr::TrackedDevicePose_t> devicesData_; //Map device state to its ID
+
+  std::map<std::string,vr::TrackedDevicePose_t> devicesDataThread_; //Map device state to its ID
+
+  vr::TrackedDevicePose_t empty_device_;
+
   std::map<std::string,std::string> nameIdMap_; //Map device Id to a name
   std::map<std::string,std::string> idNameMap_; //Map device name to a Id
 

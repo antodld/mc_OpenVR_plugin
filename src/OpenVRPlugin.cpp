@@ -50,17 +50,23 @@ void OpenVRPlugin::init(mc_control::MCGlobalController & controller, const mc_rt
   th_ = std::thread(&OpenVRPlugin::threadLoop, this);
 
   controller.controller().datastore().make_call(
-    "OpenVRPlugin::getPoseByName", [this](std::string name) -> sva::PTransformd { return getPoseByName(name); });
+    "OpenVRPlugin::getPoseByName", [this](const std::string & name) -> sva::PTransformd { return getPoseByName(name); });
   controller.controller().datastore().make_call(
-    "OpenVRPlugin::getPoseById", [this](std::string id) -> sva::PTransformd { return getPoseByID(id); });
+    "OpenVRPlugin::getPoseById", [this](const std::string & id) -> sva::PTransformd { return getPoseByID(id); });
   
   controller.controller().datastore().make_call(
-    "OpenVRPlugin::getVelocityByName", [this](std::string name) -> sva::MotionVecd { return getVelocityByName(name); });
+    "OpenVRPlugin::getVelocityByName", [this](const std::string & name) -> sva::MotionVecd { return getVelocityByName(name); });
   controller.controller().datastore().make_call(
     "OpenVRPlugin::getVelocityById", [this](std::string id) -> sva::MotionVecd { return getVelocityById(id); });
   
   controller.controller().datastore().make_call(
     "OpenVRPlugin::getDevicesId", [this]() -> std::vector<std::string> { return getDevicesId(); });
+  
+  controller.controller().datastore().make_call(
+  "OpenVRPlugin::deviceOnline", [this](const std::string & name) -> bool { return deviceOnline(name); });
+  
+  controller.controller().datastore().make_call(
+  "OpenVRPlugin::deviceHasName", [this](const std::string & id) -> bool { return deviceHasName(id); });
 
 
   mc_rtc::log::info("OpenVRPlugin::init called with configuration:\n{}", plugin_config.dump(true, true));
@@ -81,6 +87,11 @@ void OpenVRPlugin::reset(mc_control::MCGlobalController & controller)
 
 void OpenVRPlugin::before(mc_control::MCGlobalController & ctl)
 {
+  {
+    std::lock_guard<std::mutex> lk_copy_state(mutex_);
+    devicesData_ = devicesDataThread_;
+  }
+
   updateDeviceGUI(ctl);
   // mc_rtc::log::info("Tracker test\n{}",getPoseByName("RightArm").translation());
   
@@ -95,12 +106,9 @@ void OpenVRPlugin::update()
 {
   if(localData_)
   {
-    std::map<std::string,vr::TrackedDevicePose_t> devicesData = getDevicesData(); //Map device state to its ID
-    data_.update(devicesData);
     {
       std::lock_guard<std::mutex> lk_copy_state(mutex_);
-      devicesData_ = devicesData;
-      
+      data_.update(devicesDataThread_);
     }
   }
   else
@@ -120,13 +128,15 @@ void OpenVRPlugin::update()
         count +=1;
       }
       receiver_.get(data);
-      std::lock_guard<std::mutex> lk_copy_state(mutex_);
             
       std::map<std::string,vr::TrackedDevicePose_t>::iterator it;
-      for (it = data.begin(); it != data.end(); it++)
       {
-        devicesData_[it->first] = it->second;
-      } 
+        std::lock_guard<std::mutex> lk_copy_state(mutex_);
+        for (it = data.begin(); it != data.end(); it++)
+        {
+          devicesDataThread_[it->first] = it->second;
+        } 
+      }
     
     }
     else
@@ -145,11 +155,15 @@ void OpenVRPlugin::updateDeviceGUI(mc_control::MCGlobalController & controller)
 
   for(auto & id: devicesId)
   {
-    if(!gui->hasElement({"OpenVRPlugin","Devices"},"ID :" + id))
+    std::string gui_name = "ID :" + id;
+    if(deviceIdHasName(id))
+    {
+      gui_name += " " + deviceNameById(id);
+    }
+    if(!gui->hasElement({"OpenVRPlugin","Devices"},gui_name))
     {
       std::string name = deviceNameById(id);
-      gui->addElement({"OpenVRPlugin","Devices"}, mc_rtc::gui::Transform("ID :" + id,[this,id]() -> sva::PTransformd {return getPoseByID(id);}));
-      gui->addElement({"OpenVRPlugin","Devices"}, mc_rtc::gui::Label("Associated Name : " + name,[this]() -> std::string {return "";}));
+      gui->addElement({"OpenVRPlugin","Devices"}, mc_rtc::gui::Transform(gui_name,[this,id]() -> sva::PTransformd {return getPoseByID(id);}));
     }
   }
 
