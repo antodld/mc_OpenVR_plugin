@@ -38,6 +38,10 @@ endif()
 
 # This creates a target PkgConfig::openvr if openvr is found
 pkg_check_modules(openvr REQUIRED IMPORTED_TARGET openvr)
+include_directories(${openvr_INCLUDE_DIRS})
+
+# message("HERE IS DIR ${openvr_INCLUDE_DIRS} ")
+
 
 find_package(Boost REQUIRED COMPONENTS serialization)
 

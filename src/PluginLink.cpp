@@ -5,12 +5,8 @@
 #include <yaml-cpp/yaml.h>
 #include <UDPDataLink/Publisher.h>
 
-int main()
+int configFromYAML(std::string & ip,int & port)
 {
-
-    OpenVRData openVRData;
-    UDPDataLink::Publisher<std::map<std::string,vr::TrackedDevicePose_t>> sender;
-
     YAML::Node config = YAML::LoadFile("etc/OpenVRPlugin.yaml");
 
     if (!config["OpenVRPlugin"]["distantData"]) 
@@ -29,8 +25,62 @@ int main()
         return 3;
     }
 
-    const std::string ip = config["OpenVRPlugin"]["distantData"]["ip"].as<std::string>();
-    const int port = config["OpenVRPlugin"]["distantData"]["port"].as<int>();
+    ip = config["OpenVRPlugin"]["distantData"]["ip"].as<std::string>();
+    port = config["OpenVRPlugin"]["distantData"]["port"].as<int>();
+    return 0;
+}
+
+int configFromArg(std::string & ip,int & port,int argc, char* argv[])
+{
+    for (int i = 0; i < argc; i++)
+    {
+        if(strcmp(argv[i], "--h") == 0)
+        {
+            ip = argv[i+1];
+        }
+        if(strcmp(argv[i], "--p") == 0)
+        {
+            port = std::stoi(argv[i+1]);
+        }
+        if(strcmp(argv[i], "--help") == 0)
+        {
+            std::cout << "./PluginLink --h [host] --p [port]" << std::endl;
+            return 4;
+        }
+    }
+    if(ip == "" )
+    {
+        std::cout << "ERROR : no IP provided" <<std::endl;
+        return 2;       
+    }
+    if(port == 0)
+    {
+        std::cout << "ERROR : no port number provided" <<std::endl;
+        return 3;            
+    }
+    return 0;
+}
+
+int main(int argc, char* argv[])
+{
+
+    OpenVRData openVRData;
+    UDPDataLink::Publisher<std::map<std::string,vr::TrackedDevicePose_t>> sender;
+    std::string ip ="";
+    int port = 0;
+    std::cout << argc << std::endl;
+    if(argc == 1)
+    {
+       const int res = configFromYAML(ip,port);
+       if(res != 0){return res;}
+    }
+    else
+    {
+        const int res = configFromArg(ip,port,argc,argv);
+        if(res != 0){return res;}    
+
+    }
+
     sender.create(&ip[0],port);
     openVRData.init();
     
