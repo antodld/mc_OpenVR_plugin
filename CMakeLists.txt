@@ -37,6 +37,7 @@ if(NOT yaml-cpp_FOUND)
 endif()
 
 # This creates a target PkgConfig::openvr if openvr is found
+set(ENV{PKG_CONFIG_PATH} "${CMAKE_INSTALL_PREFIX}/share/pkgconfig:$ENV{PKG_CONFIG_PATH}")
 pkg_check_modules(openvr REQUIRED IMPORTED_TARGET openvr)
 include_directories(${openvr_INCLUDE_DIRS})
 
@@ -64,6 +65,9 @@ add_library(OpenVRData SHARED ${OpenVRData_SRC} ${OpenVRData_HDR})
 
 # target_link_libraries(OpenVRData PUBLIC ${Boost_LIBRARIES})
 target_link_libraries(OpenVRData PUBLIC PkgConfig::openvr)
+# workaround as PkgConfig::openvr includes ${CMAKE_INSTALL_PREFIX}/include/openvr which
+# prevents calls to #include <openvr/openvr.h>
+target_include_directories(OpenVRData PUBLIC ${CMAKE_INSTALL_PREFIX}/include)
 
 export(TARGETS OpenVRData FILE "OpenVRDataConfig.cmake")
 

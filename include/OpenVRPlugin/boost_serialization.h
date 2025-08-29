@@ -1,6 +1,5 @@
 #include <boost/serialization/array.hpp>
 #include <boost/serialization/split_free.hpp>
-#include <boost/serialization/boost_unordered_map.hpp>
 #include <boost/serialization/string.hpp>
 #include <openvr/openvr.h>
 
