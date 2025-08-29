@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1.3)
+cmake_minimum_required(VERSION 4.0)
 
 set(PROJECT_NAME OpenVRPlugin)
 set(PROJECT_DESCRIPTION "")
