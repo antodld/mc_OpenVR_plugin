@@ -32,7 +32,7 @@ struct OpenVRPlugin : public mc_control::GlobalPlugin
 
   const vr::TrackedDevicePose_t & getDeviceById(const std::string & id) const
   {
-    const std::map<std::string, vr::TrackedDevicePose_t> data = getDevicesData();
+    const std::map<std::string, vr::TrackedDevicePose_t> & data = getDevicesData();
 
     if(data.count(id) != 0)
     {
