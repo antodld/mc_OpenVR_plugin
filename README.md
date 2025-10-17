@@ -1,16 +1,16 @@
 mc_OpenVR_plugin
 ==
-This plugins provide an access to the OpenVR devices for [mc_rtc]  
+This plugins provide an access to the OpenVR devices for [mc_rtc]
 
-## Dependencies 
+## Dependencies
 
 [mc_rtc](https://github.com/jrl-umi3218/mc_rtc) (for control computer)
 
 [OpenVR](https://github.com/ValveSoftware/openvr)
 
-[UDPDataLink](https://github.com/antodld/UDPDataLink) (On operator computer for remote devices access) 
+[UDPDataLink](https://github.com/antodld/UDPDataLink) (On operator computer for remote devices access)
 
-## Installation 
+## Installation
 
 In repo directory :
 ```shell
@@ -42,15 +42,15 @@ You can access the pose or the velocity of a device in the controller by using t
   auto & getDevicesId = ctl.datastore().get<std::function<std::vector<std::string>()>>("OpenVRPlugin::getDevicesId");
   std::vector<std::string> deviceIDList = getDevicesId();
 ```
-The following function are also available: 
-```cpp 
--"OpenVRPlugin::getPoseById" 
+The following function are also available:
+```cpp
+-"OpenVRPlugin::getPoseById"
 
--"OpenVRPlugin::getVelocityById" 
+-"OpenVRPlugin::getVelocityById"
 ```
 
 
-By default, it is assumed SteamVR is running on the same computer as the one running the controller. 
+By default, it is assumed SteamVR is running on the same computer as the one running the controller.
 
 # Distant device connection
 If the devices are connected to another computer the data will be streamed using UDP. Using the following executable :
