@@ -5,13 +5,13 @@
 #pragma once
 
 #include <mc_control/GlobalPlugin.h>
-#include <openvr/openvr.h>
-#include <iostream>
-#include <map>
 #include "../include/OpenVRPlugin/OpenVRData.h"
 #include "../include/OpenVRPlugin/boost_serialization.h"
 #include <UDPDataLink/Publisher.h>
 #include <UDPDataLink/Receiver.h>
+#include <iostream>
+#include <map>
+#include <openvr/openvr.h>
 
 namespace mc_plugin
 {
@@ -32,13 +32,13 @@ struct OpenVRPlugin : public mc_control::GlobalPlugin
 
   const vr::TrackedDevicePose_t & getDeviceById(const std::string & id) const
   {
-    const std::map<std::string,vr::TrackedDevicePose_t> data = getDevicesData();
- 
+    const std::map<std::string, vr::TrackedDevicePose_t> data = getDevicesData();
+
     if(data.count(id) != 0)
     {
       return data.at(id);
     }
-    mc_rtc::log::warning("[{}] Device Id {} is not available","OpenVRPlugin",id);   
+    mc_rtc::log::warning("[{}] Device Id {} is not available", "OpenVRPlugin", id);
     return empty_device_;
   }
 
@@ -53,12 +53,11 @@ struct OpenVRPlugin : public mc_control::GlobalPlugin
     }
     else
     {
-      mc_rtc::log::warning("[{}] Device name {} is not available in configuration","OpenVRPlugin",name);
+      mc_rtc::log::warning("[{}] Device name {} is not available in configuration", "OpenVRPlugin", name);
       return empty_device_;
     }
 
     return getDeviceById(id);
-  
   }
 
   sva::PTransformd getPoseByName(const std::string & name)
@@ -74,33 +73,33 @@ struct OpenVRPlugin : public mc_control::GlobalPlugin
   sva::MotionVecd getVelocityByName(const std::string & name)
   {
     auto device = getDeviceByName(name);
-    return convertVelocity(device.vAngularVelocity,device.vVelocity);
+    return convertVelocity(device.vAngularVelocity, device.vVelocity);
   }
 
   sva::MotionVecd getVelocityById(const std::string & id)
   {
     const auto device = getDeviceByName(id);
-    return convertVelocity(device.vAngularVelocity,device.vVelocity);
+    return convertVelocity(device.vAngularVelocity, device.vVelocity);
   }
 
   void listDevicesId() const
   {
-    const std::map<std::string,vr::TrackedDevicePose_t> & data = getDevicesData();
+    const std::map<std::string, vr::TrackedDevicePose_t> & data = getDevicesData();
 
-    for (auto & device : data)
+    for(auto & device : data)
     {
-      mc_rtc::log::info("ID : {}",device.first);
+      mc_rtc::log::info("ID : {}", device.first);
     }
   }
 
   std::vector<std::string> getDevicesId() const
   {
     std::vector<std::string> out;
-    const std::map<std::string,vr::TrackedDevicePose_t> & data = getDevicesData();
-    for (auto & device : data)
+    const std::map<std::string, vr::TrackedDevicePose_t> & data = getDevicesData();
+    for(auto & device : data)
     {
       out.push_back(device.first);
-    }  
+    }
     return out;
   }
 
@@ -112,7 +111,7 @@ struct OpenVRPlugin : public mc_control::GlobalPlugin
     }
     else
     {
-      mc_rtc::log::error("[{}] device name {} does not exist","OpenVRPlugin",name);
+      mc_rtc::log::error("[{}] device name {} does not exist", "OpenVRPlugin", name);
     }
     return "";
   }
@@ -124,7 +123,7 @@ struct OpenVRPlugin : public mc_control::GlobalPlugin
     }
     else
     {
-      mc_rtc::log::error("[{}] device ID {} does not exist","OpenVRPlugin",id);
+      mc_rtc::log::error("[{}] device ID {} does not exist", "OpenVRPlugin", id);
     }
     return "";
   }
@@ -138,15 +137,14 @@ struct OpenVRPlugin : public mc_control::GlobalPlugin
   {
     if(!deviceHasName(name))
     {
-      mc_rtc::log::error("[{}] device name {} does not exist","OpenVRPlugin",name);
+      mc_rtc::log::error("[{}] device name {} does not exist", "OpenVRPlugin", name);
       return false;
     }
     const auto id = deviceIdByName(name);
 
-    const std::map<std::string,vr::TrackedDevicePose_t> & data = getDevicesData();
- 
-    return data.count(id) != 0;
+    const std::map<std::string, vr::TrackedDevicePose_t> & data = getDevicesData();
 
+    return data.count(id) != 0;
   }
 
   bool deviceIdHasName(const std::string & id) const
@@ -157,7 +155,6 @@ struct OpenVRPlugin : public mc_control::GlobalPlugin
   ~OpenVRPlugin() override;
 
 private:
-
   void update();
 
   void threadLoop()
@@ -172,33 +169,31 @@ private:
   sva::PTransformd convertTransform(const vr::HmdMatrix34_t & matrix);
   sva::MotionVecd convertVelocity(const vr::HmdVector3_t & angular, const vr::HmdVector3_t & linear);
 
-  const std::map<std::string,vr::TrackedDevicePose_t> & getDevicesData() const
+  const std::map<std::string, vr::TrackedDevicePose_t> & getDevicesData() const
   {
     return devicesData_;
   }
 
-  UDPDataLink::Receiver<std::map<std::string,vr::TrackedDevicePose_t>> receiver_;
+  using Receiver = UDPDataLink::Receiver<std::map<std::string, vr::TrackedDevicePose_t>>;
+  std::unique_ptr<Receiver> receiver_ = nullptr;
 
   OpenVRData data_;
   std::mutex mutex_;
-  std::map<std::string,vr::TrackedDevicePose_t> devicesData_; //Map device state to its ID
+  std::map<std::string, vr::TrackedDevicePose_t> devicesData_; // Map device state to its ID
 
-  std::map<std::string,vr::TrackedDevicePose_t> devicesDataThread_; //Map device state to its ID
+  std::map<std::string, vr::TrackedDevicePose_t> devicesDataThread_; // Map device state to its ID
 
   vr::TrackedDevicePose_t empty_device_;
 
-  std::map<std::string,std::string> nameIdMap_; //Map device Id to a name
-  std::map<std::string,std::string> idNameMap_; //Map device name to a Id
+  std::map<std::string, std::string> nameIdMap_; // Map device Id to a name
+  std::map<std::string, std::string> idNameMap_; // Map device name to a Id
 
-
-  bool localData_ = true; //Wether on not steamVR is on the machine running the plugin
+  bool localData_ = true; // Wether on not steamVR is on the machine running the plugin
   bool threadOn_ = false;
   std::thread th_;
   int sleepTime_ = 30;
 
   mc_rtc::Configuration config_;
-
-
 };
 
 } // namespace mc_plugin
