@@ -41,9 +41,12 @@ void OpenVRPlugin::init(mc_control::MCGlobalController & controller, const mc_rt
   {
     const int n_port = plugin_config("distantData")("port");
     const std::string ip = plugin_config("distantData")("ip");
-    mc_rtc::log::info("create UDP receiver on port {}", n_port);
+    mc_rtc::log::info("Create UDP receiver on port: {}, ip: {}", n_port, ip);
     // 0 lets the OS pick a local port
     receiver_ = std::make_unique<Receiver>(ip, n_port, 0);
+    std::string msg = fmt::format("Hello from OpenVRPlugin");
+    receiver_->send_data(reinterpret_cast<const uint8_t *>(msg.data()), msg.size());
+    receiver_->receive();
   }
   else
   {
