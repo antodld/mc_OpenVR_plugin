@@ -86,6 +86,7 @@ int main(int argc, char * argv[])
   }
 
   UDPDataLink::Publisher<std::map<std::string, vr::TrackedDevicePose_t>> sender(port);
+  sender.start_reception();
   openVRData.init();
 
   std::cout << "Start sending data over IP :" << ip << " on port : " << port << std::endl;
