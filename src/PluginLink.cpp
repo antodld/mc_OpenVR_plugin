@@ -5,7 +5,7 @@
 #include <thread>
 #include <yaml-cpp/yaml.h>
 
-int configFromYAML(std::string & ip, int & port)
+int configFromYAML(std::string & ip, uint16_t & port, bool & verbose, size_t & max_packet_size)
 {
   YAML::Node config = YAML::LoadFile("etc/OpenVRPlugin.yaml");
 
@@ -26,11 +26,23 @@ int configFromYAML(std::string & ip, int & port)
   }
 
   ip = config["OpenVRPlugin"]["distantData"]["ip"].as<std::string>();
-  port = config["OpenVRPlugin"]["distantData"]["port"].as<int>();
+  port = config["OpenVRPlugin"]["distantData"]["port"].as<uint16_t>();
+  if(config["OpenVRPlugin"]["distantData"]["verbose"])
+  {
+    verbose = config["OpenVRPlugin"]["distantData"]["verbose"].as<bool>();
+  }
+  if(config["OpenVRPlugin"]["distantData"]["max_packet_size"])
+  {
+    max_packet_size = config["OpenVRPlugin"]["distantData"]["max_packet_size"].as<size_t>();
+  }
+  else
+  {
+    return DEFAULT_MAX_PACKET_SIZE;
+  }
   return 0;
 }
 
-int configFromArg(std::string & ip, int & port, int argc, char * argv[])
+int configFromArg(std::string & ip, uint16_t & port, int argc, char * argv[])
 {
   for(int i = 0; i < argc; i++)
   {
@@ -66,11 +78,13 @@ int main(int argc, char * argv[])
 
   OpenVRData openVRData;
   std::string ip = "";
-  int port = 0;
+  uint16_t port = 0;
+  bool verbose = false;
+  auto max_packet_size = DEFAULT_MAX_PACKET_SIZE;
   std::cout << argc << std::endl;
   if(argc == 1)
   {
-    const int res = configFromYAML(ip, port);
+    const int res = configFromYAML(ip, port, verbose, max_packet_size);
     if(res != 0)
     {
       return res;
@@ -85,7 +99,7 @@ int main(int argc, char * argv[])
     }
   }
 
-  UDPDataLink::Publisher<std::map<std::string, vr::TrackedDevicePose_t>> sender(port);
+  UDPDataLink::Publisher<std::map<std::string, vr::TrackedDevicePose_t>> sender(port, max_packet_size);
   sender.start_reception();
   openVRData.init();
 
@@ -95,6 +109,7 @@ int main(int argc, char * argv[])
     std::map<std::string, vr::TrackedDevicePose_t> devicesData = openVRData.getDevicesData();
     openVRData.update(devicesData);
     sender.update_data(devicesData);
+    sender.set_verbose(verbose);
     // std::cout << "connected " << devicesData.begin()->first << std::endl;
     std::this_thread::sleep_for(std::chrono::milliseconds(1));
   }

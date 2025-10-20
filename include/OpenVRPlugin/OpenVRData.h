@@ -5,6 +5,7 @@
 #include <mutex>
 #include <openvr/openvr.h>
 
+constexpr size_t DEFAULT_MAX_PACKET_SIZE = 8192;
 struct OpenVRData
 {
   void init()

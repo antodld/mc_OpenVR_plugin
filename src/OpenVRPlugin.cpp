@@ -39,14 +39,18 @@ void OpenVRPlugin::init(mc_control::MCGlobalController & controller, const mc_rt
   plugin_config("localData", localData_);
   if(!localData_)
   {
-    const int n_port = plugin_config("distantData")("port");
-    const std::string ip = plugin_config("distantData")("ip");
+    const auto & distantDataC = plugin_config("distantData");
+    const uint16_t n_port = distantDataC("port");
+    const uint16_t n_local_port = distantDataC("local_port", 0);
+    const std::string ip = distantDataC("ip");
+    const size_t max_packet_size = distantDataC("max_packet_size", DEFAULT_MAX_PACKET_SIZE);
     mc_rtc::log::info("Create UDP receiver on port: {}, ip: {}", n_port, ip);
     // 0 lets the OS pick a local port
-    receiver_ = std::make_unique<Receiver>(ip, n_port, 0);
+    receiver_ = std::make_unique<Receiver>(ip, n_port, n_local_port, max_packet_size);
+    receiver_->set_verbose(distantDataC("verbose", false));
     std::string msg = fmt::format("Hello from OpenVRPlugin");
     receiver_->send_data(reinterpret_cast<const uint8_t *>(msg.data()), msg.size());
-    receiver_->receive();
+    receiver_->start_reception();
   }
   else
   {
@@ -122,14 +126,15 @@ void OpenVRPlugin::update()
     if(receiver_)
     {
       std::map<std::string, vr::TrackedDevicePose_t> data;
-      receiver_->get(data);
-
-      std::map<std::string, vr::TrackedDevicePose_t>::iterator it;
+      if(receiver_->get(data))
       {
-        std::lock_guard<std::mutex> lk_copy_state(mutex_);
-        for(it = data.begin(); it != data.end(); it++)
+        std::map<std::string, vr::TrackedDevicePose_t>::iterator it;
         {
-          devicesDataThread_[it->first] = it->second;
+          std::lock_guard<std::mutex> lk_copy_state(mutex_);
+          for(it = data.begin(); it != data.end(); it++)
+          {
+            devicesDataThread_[it->first] = it->second;
+          }
         }
       }
     }

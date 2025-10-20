@@ -9,5 +9,8 @@ OpenVRPlugin:
 
   localData: false
   distantData:
-    port: 12338
-    ip: 127.0.0.1
+    port: 12338 # server port (where PluginLink is running)
+    ip: 127.0.0.1 # server ip (where PluginLink is running)
+    # local_port: 0 # local port, 0 lets the os choose one automatically
+    # vebose: false # debug communication
+    # max_packet_size: 8192 # increase in case of boost serialization issues
