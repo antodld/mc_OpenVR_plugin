@@ -1,1 +1,5 @@
-vive_tracker: [json, "@MODULE_INSTALL_LOCATION@/vive_tracker.yaml"]
+vive_tracker: [json, "@MODULE_INSTALL_LOCATION@/yaml/vive_tracker_gray.yaml"]
+vive_tracker_gray: [json, "@MODULE_INSTALL_LOCATION@/yaml/vive_tracker_gray.yaml"]
+vive_tracker_red: [json, "@MODULE_INSTALL_LOCATION@/yaml/vive_tracker_red.yaml"]
+vive_tracker_green: [json, "@MODULE_INSTALL_LOCATION@/yaml/vive_tracker_green.yaml"]
+vive_tracker_blue: [json, "@MODULE_INSTALL_LOCATION@/yaml/vive_tracker_blue.yaml"]
