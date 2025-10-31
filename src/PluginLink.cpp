@@ -35,10 +35,6 @@ int configFromYAML(std::string & ip, uint16_t & port, bool & verbose, size_t & m
   {
     max_packet_size = config["OpenVRPlugin"]["distantData"]["max_packet_size"].as<size_t>();
   }
-  else
-  {
-    return DEFAULT_MAX_PACKET_SIZE;
-  }
   return 0;
 }
 
