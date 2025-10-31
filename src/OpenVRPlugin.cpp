@@ -1,6 +1,7 @@
 #include "OpenVRPlugin.h"
 
 #include <mc_control/GlobalPluginMacros.h>
+#include <mc_rbdyn/RobotLoader.h>
 #include <mc_rtc/gui/Label.h>
 #include <mc_rtc/gui/Transform.h>
 
@@ -15,6 +16,9 @@ OpenVRPlugin::~OpenVRPlugin()
 
 void OpenVRPlugin::init(mc_control::MCGlobalController & controller, const mc_rtc::Configuration & config)
 {
+  vive_module_ = mc_rbdyn::RobotLoader::get_robot_module("vive_tracker");
+  viveRobots_ = mc_rbdyn::Robots::make();
+
   config_.load(config);
   config_.load(controller.controller().config());
   const auto & plugin_config = config_("OpenVRPlugin");
@@ -163,6 +167,13 @@ void OpenVRPlugin::updateDeviceGUI(mc_control::MCGlobalController & controller)
       std::string name = deviceNameById(id);
       gui->addElement({"OpenVRPlugin", "Devices"},
                       mc_rtc::gui::Transform(gui_name, [this, id]() -> sva::PTransformd { return getPoseByID(id); }));
+      auto & viveRobot = viveRobots_->load(name, *vive_module_);
+      gui->addElement({"OpenVRPlugin", "Devices"}, mc_rtc::gui::Robot(name,
+                                                                      [&viveRobot, this, id]() -> mc_rbdyn::Robot &
+                                                                      {
+                                                                        viveRobot.posW(getPoseByID(id));
+                                                                        return viveRobot;
+                                                                      }));
     }
   }
 }

@@ -112,6 +112,8 @@ if(BUILD_MC_RTC_PLUGIN)
   # install(EXPORT ${PROJECT_NAME} FILE "${PROJECT_NAME}Config.cmake"
   # DESTINATION lib/cmake/${PROJECT_NAME})
 
+  add_subdirectory(module)
+
   if(BUILD_TESTING)
     add_subdirectory(tests)
   endif()

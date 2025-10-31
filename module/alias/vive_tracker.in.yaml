@@ -1,0 +1,1 @@
+vive_tracker: [json, "@MODULE_INSTALL_LOCATION@/vive_tracker.yaml"]

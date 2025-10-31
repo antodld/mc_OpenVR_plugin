@@ -13,6 +13,11 @@
 #include <map>
 #include <openvr/openvr.h>
 
+namespace mc_rbdyn
+{
+struct RobotModule;
+}
+
 namespace mc_plugin
 {
 
@@ -194,6 +199,8 @@ private:
   int sleepTime_ = 30;
 
   mc_rtc::Configuration config_;
+  std::shared_ptr<mc_rbdyn::RobotModule> vive_module_ = nullptr;
+  mc_rbdyn::RobotsPtr viveRobots_;
 };
 
 } // namespace mc_plugin

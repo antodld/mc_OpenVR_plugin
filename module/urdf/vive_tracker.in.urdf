@@ -1,0 +1,13 @@
+<robot name="vive_tracker">
+  <link name="vive_tracker">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="file://@MODULE_INSTALL_LOCATION@/meshes/vive_tracker.stl"/>
+      </geometry>
+      <material name="gray">
+        <color rgba="0.5 0.5 0.5 1"/>
+      </material>
+    </visual>
+  </link>
+</robot>

@@ -1,0 +1,6 @@
+# Location of data files, all path in the YAML file are
+# interpreted relative to this path unless they are absolute paths
+path: "@MODULE_INSTALL_LOCATION@"
+name: vive_tracker
+urdf_path: urdf/vive_tracker.urdf
+fixed: false
